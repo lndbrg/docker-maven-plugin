@@ -42,9 +42,17 @@ public class PushMojo extends AbstractDockerMojo {
   @Parameter(property = "imageName", required = true)
   private String imageName;
 
+  /** Number of retries for failing pushes, defaults to 3 */
+  @Parameter(property = "retryCount", defaultValue = "3")
+  private int retryCount;
+
+  /** Retry timeout for failing pushes, defaults to 5 seconds */
+  @Parameter(property = "retryTimeout", defaultValue = "5000")
+  private int retryTimeout;
+
   protected void execute(DockerClient docker)
       throws MojoExecutionException, DockerException, IOException, InterruptedException {
-    pushImage(docker, imageName, getLog(), null);
+    pushImage(docker, imageName, getLog(), null, retryCount, retryTimeout);
   }
 
 }

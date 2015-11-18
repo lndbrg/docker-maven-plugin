@@ -78,6 +78,14 @@ public class TagMojo extends AbstractDockerMojo {
   @Parameter(property = "tagInfoFile")
   private String tagInfoFile = "target/image_info.json";
 
+  /** Number of retries for failing pushes, defaults to 3 */
+  @Parameter(property = "retryCount", defaultValue = "3")
+  private int retryCount;
+
+  /** Retry timeout for failing pushes, defaults to 5 seconds */
+  @Parameter(property = "retryTimeout", defaultValue = "5000")
+  private int retryTimeout;
+
   /**
    * If specified as true, a tag will be generated consisting of the first 7 characters of the most
    * recent git commit ID, resulting in something like <tt>image:df8e8e6</tt>. If there are any
@@ -116,7 +124,7 @@ public class TagMojo extends AbstractDockerMojo {
     final DockerBuildInformation buildInfo = new DockerBuildInformation(normalizedName, getLog());
 
     if (pushImage) {
-      pushImage(docker, newName, getLog(), buildInfo);
+      pushImage(docker, newName, getLog(), buildInfo, retryCount, retryTimeout);
     }
 
     writeImageInfoFile(buildInfo, tagInfoFile);

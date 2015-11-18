@@ -31,6 +31,8 @@
         <configuration>
           <dockerHost>http://host:2375</dockerHost>
           <imageName>busybox</imageName>
+          <retryTimeout>1</retryTimeout>
+          <retryCount>3</retryCount>
         </configuration>
       </plugin>
       <plugin>

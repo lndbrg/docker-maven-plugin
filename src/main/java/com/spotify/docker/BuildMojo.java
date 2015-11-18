@@ -148,6 +148,14 @@ public class BuildMojo extends AbstractDockerMojo {
   @Parameter(property = "user")
   private String user;
 
+  /** Number of retries for failing pushes, defaults to 3 */
+  @Parameter(property = "retryCount", defaultValue = "3")
+  private int retryCount;
+
+  /** Retry timeout for failing pushes, defaults to 5 seconds */
+  @Parameter(property = "retryTimeout", defaultValue = "5000")
+  private int retryTimeout;
+
   /**
    * The run commands for the image.
    */
@@ -321,7 +329,7 @@ public class BuildMojo extends AbstractDockerMojo {
     }
 
     if (pushImage) {
-      pushImage(docker, imageName, getLog(), buildInfo);
+      pushImage(docker, imageName, getLog(), buildInfo, retryCount, retryTimeout);
     }
 
     // Write image info file

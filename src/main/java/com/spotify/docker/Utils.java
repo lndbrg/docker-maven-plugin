@@ -26,7 +26,6 @@ import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DockerException;
 import com.spotify.docker.client.ProgressHandler;
 import com.spotify.docker.client.messages.ProgressMessage;
-
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 
@@ -36,6 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static java.lang.Thread.sleep;
 
 public class Utils {
 
@@ -65,20 +65,34 @@ public class Utils {
   }
 
   public static void pushImage(DockerClient docker, String imageName, Log log,
-                               final DockerBuildInformation buildInfo)
-      throws MojoExecutionException, DockerException, IOException, InterruptedException {
-      log.info("Pushing " + imageName);
+                               final DockerBuildInformation buildInfo,
+                               int retryCount, int retryTimeout)
+          throws MojoExecutionException, DockerException, IOException, InterruptedException {
+    log.info("Pushing " + imageName);
+    int attempt = 0;
+    do {
+      final AnsiProgressHandler ansiProgressHandler = new AnsiProgressHandler();
+      final DigestExtractingProgressHandler handler = new DigestExtractingProgressHandler(
+              ansiProgressHandler);
 
-    final AnsiProgressHandler ansiProgressHandler = new AnsiProgressHandler();
-    final DigestExtractingProgressHandler handler = new DigestExtractingProgressHandler(
-        ansiProgressHandler);
-
-    docker.push(imageName, handler);
-
-    if (buildInfo != null) {
-      final String imageNameWithoutTag = parseImageName(imageName)[0];
-      buildInfo.setDigest(imageNameWithoutTag + "@" + handler.digest());
-    }
+      try {
+        docker.push(imageName, handler);
+      } catch (DockerException e) {
+        if (attempt < retryCount) {
+          log.warn("Failed to push " + imageName + ", retrying in "
+                  + retryTimeout / 1000 + " seconds");
+          sleep(retryTimeout);
+          continue;
+        } else {
+          throw e;
+        }
+      }
+      if (buildInfo != null) {
+        final String imageNameWithoutTag = parseImageName(imageName)[0];
+        buildInfo.setDigest(imageNameWithoutTag + "@" + handler.digest());
+      }
+      break;
+    } while (attempt++ <= retryCount);
   }
 
   public static void writeImageInfoFile(final DockerBuildInformation buildInfo,
